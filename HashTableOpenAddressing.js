@@ -8,6 +8,7 @@ class HashTable {
         this.loadFactor = loadFactor;
         this.hashFn = hashFn;
         this.valueCount = 0;
+        this._probeSeqCnt = 0;
         this.__initBuckets(initialSize);
     }
 
@@ -26,7 +27,7 @@ class HashTable {
                 ++this.valueCount;
                 return;
             }
-            putIdx = (putIdx + 1) % this.buckets.length;
+            putIdx = this.__makeProbationSequenceStep(putIdx);
         }
         // when we finished we can insert target element
         this.buckets[putIdx] = {k, v};
@@ -50,7 +51,7 @@ class HashTable {
         let getIdx = k % this.buckets.length;
         // if empty cell return immediately
         while (this.buckets[getIdx] != null && this.buckets[getIdx].k !== k) {
-            getIdx = (getIdx + 1) % this.buckets.length;
+            getIdx = this.__makeProbationSequenceStep(getIdx);
         }
 
         if (!this.buckets[getIdx]) {
@@ -67,21 +68,26 @@ class HashTable {
             return;
         }
 
+        // move over probation sequence until reac end of it or find given key
         while (this.buckets[deleteIdx] != null && this.buckets[deleteIdx].k !== k) {
-            deleteIdx = (deleteIdx + 1) % this.buckets.length;
+            deleteIdx = this.__makeProbationSequenceStep(deleteIdx);
         }
 
-        this.buckets[deleteIdx] = null;
-        --this.valueCount;
+        // if found something perform deletion
+        if (!!this.buckets[deleteIdx]) {
+          this.buckets[deleteIdx] = null;
+          --this.valueCount;
+        }
 
-        deleteIdx = (deleteIdx + 1) % this.buckets.length;
+        // check probation sequence probable breakout
+        deleteIdx = this.__makeProbationSequenceStep(deleteIdx);
         while (this.buckets[deleteIdx] != null) {
             // in this cycle check out if we broke probation sequence
             if ((this.buckets[deleteIdx].k % this.buckets.length) !== deleteIdx) {
                 // in this case shift backward
                 this.buckets[(deleteIdx - 1) % this.buckets.length] = this.buckets[deleteIdx];
                 this.buckets[deleteIdx] = null;
-                deleteIdx = (deleteIdx + 1) % this.buckets.length;
+                deleteIdx = this.__makeProbationSequenceStep(deleteIdx);
             } else {
                 // in this case we consider then probation sequence rehash has done
                 return;
@@ -101,6 +107,19 @@ class HashTable {
         for (let idx = 0; idx < size; idx++) {
             this.buckets.push(null);
         }
+    }
+
+    // TODO impl for other probation sequences method
+    __makeProbationSequenceStep(idx) {
+        switch (method) {
+            case LINEAR_PROBATION:
+                return (idx + 1) % this.buckets.length;
+            case QUADRATIC_PROBATION:
+                return (idx + 1) % this.buckets.length;
+            default:
+                break;
+        }
+
     }
 }
 
