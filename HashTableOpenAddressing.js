@@ -1,14 +1,18 @@
 const LINEAR_PROBATION = 'LINEAR_PROBATION';
 const QUADRATIC_PROBATION = 'QUADRATIC_PROBATION';
+const PSEUDO_RANDOM_PROBATION = 'PSEUDO_RANDOM_PROBATION';
 
 class HashTable {
-    constructor(initialSize = 16, loadFactor = 0.75, hashFn = x=>x, method = LINEAR_PROBATION) {
+    constructor(initialSize = 16, loadFactor = 0.75, hashFn = x=>x, method = PSEUDO_RANDOM_PROBATION) {
         this.method = method;
         this.buckets = [];
         this.loadFactor = loadFactor;
         this.hashFn = hashFn;
         this.valueCount = 0;
+        // for linear/quadratic/pseudorandom probation
         this._probeSeqCnt = 0;
+        // pseudorandom seed
+        this._pseudoRandomSeed = Math.floor(Math.random() * 10);
         this.__initBuckets(initialSize);
     }
 
@@ -32,6 +36,7 @@ class HashTable {
         // when we finished we can insert target element
         this.buckets[putIdx] = {k, v};
         ++this.valueCount;
+        this._probeSeqCnt = 0;
     }
 
     __rehash() {
@@ -53,6 +58,8 @@ class HashTable {
         while (this.buckets[getIdx] != null && this.buckets[getIdx].k !== k) {
             getIdx = this.__makeProbationSequenceStep(getIdx);
         }
+
+        this._probeSeqCnt = 0;
 
         if (!this.buckets[getIdx]) {
             return null;
@@ -90,6 +97,7 @@ class HashTable {
                 deleteIdx = this.__makeProbationSequenceStep(deleteIdx);
             } else {
                 // in this case we consider then probation sequence rehash has done
+                this._probeSeqCnt = 0;
                 return;
             }
         }
@@ -111,15 +119,19 @@ class HashTable {
 
     // TODO impl for other probation sequences method
     __makeProbationSequenceStep(idx) {
-        switch (method) {
+        switch (this.method) {
             case LINEAR_PROBATION:
-                return (idx + 1) % this.buckets.length;
+                this._probeSeqCnt = 1;
+                return (idx + this._probeSeqCnt) % this.buckets.length;
             case QUADRATIC_PROBATION:
-                return (idx + 1) % this.buckets.length;
+                ++this._probeSeqCnt;
+                return (idx + this._probeSeqCnt * this._probeSeqCnt) % this.buckets.length;
+            case PSEUDO_RANDOM_PROBATION:
+                this._probeSeqCnt += this._pseudoRandomSeed;
+                return (idx + this._probeSeqCnt) % this.buckets.length;
             default:
                 break;
         }
-
     }
 }
 
